@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Risk Analysis | Work Shield</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='1stmodel.css') }}">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="risk-hero">
+      <div>
+        <p class="eyebrow">Prediction Complete</p>
+        <h1>High-Risk Employees Ready for Analysis</h1>
+        <p class="hero-text">
+          The risk CSV has been prepared from Step 1 and is already available for reason analysis.
+        </p>
+      </div>
+      <div class="risk-count" aria-label="High-risk employee count">
+        <span>{{ total_rows }}</span>
+        <strong>High-risk records</strong>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <div class="upload-card">
+        <div class="section-heading">
+          <p class="eyebrow">Step 2</p>
+          <h2>Analyze High-Risk Employees</h2>
+        </div>
+
+        <div class="ready-file">
+          <span class="upload-icon" aria-hidden="true">CSV</span>
+          <div>
+            <strong>predicted_attrition_yes.csv</strong>
+            <small>Already received from the prediction output</small>
+          </div>
+        </div>
+
+        <div class="form-footer">
+          <form action="{{ url_for('analyze_saved') }}" method="post">
+            <button type="submit">Analyze Reasons</button>
+          </form>
+          <a class="button-link" href="{{ url_for('download_risk') }}" id="downloadRiskLink">Download Risk CSV</a>
+        </div>
+      </div>
+
+      <aside class="info-panel">
+        <div class="section-heading">
+          <p class="eyebrow">Next Output</p>
+          <h2>Final Analysis CSV</h2>
+        </div>
+        <ul class="check-list">
+          <li>Adds Reason and Action columns.</li>
+          <li>Uses job satisfaction, salary, overtime, distance, and performance rules.</li>
+          <li>Downloads as final_analysis.csv after analysis.</li>
+        </ul>
+      </aside>
+    </section>
+
+    {% if preview_rows %}
+    <section class="preview-panel">
+      <div class="section-heading">
+        <p class="eyebrow">Preview</p>
+        <h2>Risk CSV Sample</h2>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              {% for column in preview_columns %}
+              <th>{{ column }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in preview_rows %}
+            <tr>
+              {% for column in preview_columns %}
+              <td>{{ row[column] }}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    {% endif %}
+  </main>
+
+  <script>
+    window.addEventListener("load", () => {
+      const downloadLink = document.getElementById("downloadRiskLink");
+      if (downloadLink) {
+        downloadLink.click();
+      }
+    });
+  </script>
+</body>
+</html>

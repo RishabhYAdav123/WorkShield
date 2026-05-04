@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Work Shield | Attrition Predictor</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='1stmodel.css') }}">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Work Shield Analytics</p>
+        <h1>Employee Attrition Predictor</h1>
+        <p class="hero-text">
+          Upload employee records and receive a focused CSV of people the model marks as likely to leave.
+        </p>
+        <div class="hero-actions" aria-label="Sample CSV downloads">
+          <a href="{{ url_for('sample', sample_size='5') }}">5-row sample</a>
+          <a href="{{ url_for('sample', sample_size='10') }}">10-row sample</a>
+          <a href="{{ url_for('sample', sample_size='50') }}">50-row sample</a>
+        </div>
+      </div>
+
+      <div class="stats-panel" aria-label="Prediction workflow">
+        <div>
+          <span>01</span>
+          <strong>Upload CSV</strong>
+        </div>
+        <div>
+          <span>02</span>
+          <strong>Model scan</strong>
+        </div>
+        <div>
+          <span>03</span>
+          <strong>Risk CSV</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <form class="upload-card" action="{{ url_for('predict') }}" method="post" enctype="multipart/form-data" id="predictionForm">
+        <div class="section-heading">
+          <p class="eyebrow">Prediction Input</p>
+          <h2>Analyze Employee Data</h2>
+        </div>
+
+        <label class="drop-zone" for="csvFile" id="dropZone">
+          <input id="csvFile" type="file" name="csvFile" accept=".csv" required>
+          <span class="upload-icon" aria-hidden="true">CSV</span>
+          <strong id="fileTitle">Drop your CSV here or browse</strong>
+          <small id="fileMeta">Only .csv files are accepted</small>
+        </label>
+
+        <div class="form-footer">
+          <button type="submit" id="submitButton">Predict Attrition</button>
+          <p id="submitHint">The result downloads automatically when high-risk employees are found.</p>
+        </div>
+      </form>
+
+      <aside class="info-panel" aria-label="CSV preparation checklist">
+        <div class="section-heading">
+          <p class="eyebrow">Ready Checklist</p>
+          <h2>Before Uploading</h2>
+        </div>
+        <ul class="check-list">
+          <li>Keep the training column names unchanged.</li>
+          <li>Use one row per employee record.</li>
+          <li>Include HR fields such as overtime, salary, role, distance, and satisfaction.</li>
+          <li>Download a sample file if you want to test the workflow first.</li>
+        </ul>
+      </aside>
+    </section>
+
+    <section class="workspace analysis-workspace">
+      <form class="upload-card" action="{{ url_for('analyze') }}" method="post" enctype="multipart/form-data" id="analysisForm">
+        <div class="section-heading">
+          <p class="eyebrow">Post-Prediction Analysis</p>
+          <h2>Analyze High-Risk Employees</h2>
+        </div>
+
+        <label class="drop-zone" for="analysisFile" id="analysisDropZone">
+          <input id="analysisFile" type="file" name="analysisFile" accept=".csv" required>
+          <span class="upload-icon" aria-hidden="true">CSV</span>
+          <strong id="analysisFileTitle">Upload the risk CSV from step 1</strong>
+          <small id="analysisFileMeta">Adds Reason and Action columns</small>
+        </label>
+
+        <div class="form-footer">
+          <button type="submit" id="analysisButton">Analyze Reasons</button>
+          <p id="analysisHint">The final analysis CSV downloads automatically after processing.</p>
+        </div>
+      </form>
+
+      <aside class="info-panel" aria-label="Post-prediction analysis checklist">
+        <div class="section-heading">
+          <p class="eyebrow">Step 2 Requirements</p>
+          <h2>Risk CSV Fields</h2>
+        </div>
+        <ul class="check-list">
+          <li>Use the output CSV downloaded from the attrition prediction step.</li>
+          <li>Keep JobSatisfaction, MonthlyIncome, OverTime, DistanceFromHome, and PerformanceRating.</li>
+          <li>The analysis adds a reason for risk and a recommended HR action.</li>
+        </ul>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    function setupCsvUpload({ inputId, dropZoneId, titleId, metaId, formId, buttonId, defaultButtonText, loadingText }) {
+      const fileInput = document.getElementById(inputId);
+      const dropZone = document.getElementById(dropZoneId);
+      const fileTitle = document.getElementById(titleId);
+      const fileMeta = document.getElementById(metaId);
+      const form = document.getElementById(formId);
+      const submitButton = document.getElementById(buttonId);
+
+      function updateFileDetails(file) {
+        if (!file) return;
+        const sizeKb = Math.max(1, Math.round(file.size / 1024));
+        fileTitle.textContent = file.name;
+        fileMeta.textContent = `${sizeKb} KB selected`;
+        dropZone.classList.add("has-file");
+      }
+
+      fileInput.addEventListener("change", () => updateFileDetails(fileInput.files[0]));
+
+      ["dragenter", "dragover"].forEach((eventName) => {
+        dropZone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          dropZone.classList.add("is-dragging");
+        });
+      });
+
+      ["dragleave", "drop"].forEach((eventName) => {
+        dropZone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          dropZone.classList.remove("is-dragging");
+        });
+      });
+
+      dropZone.addEventListener("drop", (event) => {
+        const file = event.dataTransfer.files[0];
+        if (!file) return;
+        fileInput.files = event.dataTransfer.files;
+        updateFileDetails(file);
+      });
+
+      form.addEventListener("submit", (event) => {
+        const selectedFile = fileInput.files[0];
+        if (selectedFile && !selectedFile.name.toLowerCase().endsWith(".csv")) {
+          event.preventDefault();
+          fileTitle.textContent = "Please choose a CSV file";
+          fileMeta.textContent = "The selected file type is not supported";
+          dropZone.classList.remove("has-file");
+          return;
+        }
+
+        submitButton.textContent = loadingText;
+        submitButton.disabled = true;
+        setTimeout(() => {
+          submitButton.textContent = defaultButtonText;
+          submitButton.disabled = false;
+        }, 5000);
+      });
+    }
+
+    setupCsvUpload({
+      inputId: "csvFile",
+      dropZoneId: "dropZone",
+      titleId: "fileTitle",
+      metaId: "fileMeta",
+      formId: "predictionForm",
+      buttonId: "submitButton",
+      defaultButtonText: "Predict Attrition",
+      loadingText: "Analyzing..."
+    });
+
+    setupCsvUpload({
+      inputId: "analysisFile",
+      dropZoneId: "analysisDropZone",
+      titleId: "analysisFileTitle",
+      metaId: "analysisFileMeta",
+      formId: "analysisForm",
+      buttonId: "analysisButton",
+      defaultButtonText: "Analyze Reasons",
+      loadingText: "Preparing..."
+    });
+  </script>
+</body>
+</html>
