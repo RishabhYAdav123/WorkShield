@@ -4,6 +4,10 @@ WorkShield is a Flask-based employee attrition prediction app. Users upload empl
 
 The project also includes a second-stage analysis flow that adds rule-based `Reason` and `Action` columns for high-risk employees.
 
+## Live Demo
+
+https://workshield-9mq9.onrender.com/
+
 ## Features
 
 - CSV upload for employee attrition prediction
